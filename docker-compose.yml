@@ -1,17 +1,13 @@
-version: '2'
+version: '3'
 
 services:
   roadrunner:
     build:
       context: ./containers/roadrunner
       args:
-        RR_VERSION: ${RR_VERSION}
-        PHP_IMAGE_VERSION: ${PHP_IMAGE_VERSION}
+        PHP_IMAGE_VERSION: 8.2.15-cli-alpine3.19
     ports:
       - 8080:8080
-    environment:
-      RR_VERSION: ${RR_VERSION}
     working_dir: /app
     volumes:
       - ./:/app
-      - ./containers/roadrunner/config/.rr.yaml:/etc/rr.yaml:ro

@@ -1,15 +1,50 @@
 #!/usr/bin/env bash
 
 # start containers
-function up {
+function start {
   docker-compose up -d $@
 }
 
+# restart containers
+function restart {
+  docker-compose restart
+}
+
 # stop containers
-function down {
+function stop {
   docker-compose down
 }
 
+
+function create {
+  echo "Stating Create"
+  echo "Build docker images..."
+  docker-compose build
+
+  echo "Install..."
+  docker-compose run roadrunner sh -c 'composer create-project spiral/app tmp && cp -R tmp/. . && rm -rf tmp'
+
+  echo "Creation completed!"
+}
+
+function clear {
+  echo "Stating Clear"
+
+  for path in 'app' 'vendor' 'public' 'runtime' 'tests'; do
+     echo "Remove path ${path}..."
+     rm -rf ${path}
+  done
+
+  for file in '.env' '.env.sample' '.rr.yaml' '.styleci.yml' '.editorconfig' 'app.php' 'composer.json' 'composer.lock' 'functions.php' 'LICENSE' 'phpunit.xml' 'psalm.xml' 'rr' 'rr'; do
+     echo "Remove file ${file}..."
+     rm -irf ${file}
+  done
+}
+
+function recreate {
+  clear
+  create
+}
 # initialize application
 function init {
   echo "Stating Initialization..."
@@ -21,9 +56,28 @@ function init {
   docker-compose build
 
   echo "Install PHP dependencies..."
-  docker-compose run roadrunner sh -c 'composer require spiral/roadrunner:${RR_VERSION}'
+  docker-compose run roadrunner sh -c 'composer install'
 
   echo "Initialization completed!"
+}
+
+
+# initialize application
+function reinstall {
+  echo "Stating Initialization..."
+
+  echo "Copy .env file..."
+  cp .env.example .env
+
+  echo "Build docker images..."
+  docker-compose build
+
+  echo "Reinstall PHP dependencies..."
+  docker-compose run roadrunner sh -c 'rm -rf ./vendor'
+  docker-compose run roadrunner sh -c 'rm composer.lock'
+  docker-compose run roadrunner sh -c 'composer install'
+
+  echo "Reinstall completed!"
 }
 
 # login to container
@@ -44,18 +98,48 @@ function rr {
   docker-compose exec roadrunner rr -c /etc/rr.yaml $1
 }
 
+function help {
+  echo 'List commands:'
+  echo '  start <params>'
+  echo '  restart'
+  echo '  stop'
+  echo '  create'
+  echo '  clear'
+  echo '  recreate'
+  echo '  init'
+  echo '  reinstall'
+  echo '  login <params>'
+  echo '  logs <params>'
+  echo '  rr <params>'
+}
+
 subcommand=$1
 shift
 
 case $subcommand in
-up)
-  up $@
+start)
+  start $@
   ;;
-down)
-  down
+restart)
+  restart
+  ;;
+stop)
+  stop
+  ;;
+create)
+  create
+  ;;
+clear)
+  clear
+  ;;
+recreate)
+  recreate
   ;;
 init)
   init
+  ;;
+reinstall)
+  reinstall
   ;;
 login)
   login $1
@@ -67,6 +151,6 @@ rr)
   rr $1
   ;;
 *)
-  echo "help"
+  help
   ;;
 esac
